@@ -182,7 +182,7 @@ with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام ف�
         admin_user = st.text_input("اسم المستخدم (Username):", key="admin_user_input")
         admin_pass = st.text_input("كلمة السر (Password):", type="password", key="admin_pass_input")
         if st.button("🔓 تسجيل الدخول"):
-            if admin_user == "khadem" and admin_pass == "12345":
+            if admin_user == "admin" and admin_pass == "P@ssw0rd_123654":
                 st.session_state.admin_logged_in = True
                 st.rerun()
             else:
