@@ -112,7 +112,8 @@ if not st.session_state.user_logged_in:
             st.rerun()
 # 2️⃣ شاشة المسابقة (تظهر فقط بعد نجاح تسجيل الدخول)
 else:
-    welcome_col, logout_col = st.columns()
+    welcome_col, logout_col = st.columns(2)
+
     with welcome_col:
         st.success(f"👋 مرحباً يا بطل: **{st.session_state.user_name}** | مرحلة: **{st.session_state.user_group}**")
     with logout_col:
