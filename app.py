@@ -12,14 +12,12 @@ st.set_page_config(page_title="بورتال مسابقة الكتاب المقد
 DB_CONN_STRING = "postgresql://postgres.krcowyrafgznvpdhenvw:P%40ssw0rd_123654e@://supabase.com"
 
 # دالة مأمنة لحفظ النتيجة والهيستوري والموبايل في السيرفر مباشرة أونلاين
-# 💡 ملحوظة: لو حابب تخزن الموبايل في الداتابيز، تأكد إن جدول kpis_bible_study فيه عمود للموبايل، أو هيتحفظ مؤقتاً جوه تفاصيل الـ history
 def save_result_to_postgres(name, group, mobile, chapter, score, total, history_string):
     try:
         conn = psycopg2.connect(DB_CONN_STRING, client_encoding='utf8')
         cursor = conn.cursor()
         
         score_string = f"{score}from {total}"
-        # دمج الموبايل مع التاريخ أو حفظه في الداتابيز
         full_history = f"الموبايل: {mobile} | {history_string}"
         
         insert_query = """
@@ -100,10 +98,8 @@ else:
     if student_group != "تانية إعدادي":
         st.warning(f"✨ مسابقة مرحلة ({student_group}) مش متوفرة لسه، بنجهزها وهتنزل قريب جداً يا بطل! ✨")
     else:
-        # جلب الأسئلة لو اختار تانية إعدادي
         chapter_name, today_questions = get_today_questions()
 
-        # تصفير الـ session_state تلقائياً لو اليوم قلب على إصحاح جديد
         if "current_loaded_chapter" not in st.session_state:
             st.session_state.current_loaded_chapter = chapter_name
 
@@ -117,7 +113,6 @@ else:
         if today_questions:
             st.subheader(f"📖 جاهز لمسابقة اليوم؟ إصحاح: ({chapter_name}) ✨")
             
-            # الذاكرة المؤقتة لحفظ حالة الطالب وإجاباته
             if "quiz_submitted" not in st.session_state:
                 st.session_state.quiz_submitted = False
             if "calculated_score" not in st.session_state:
@@ -158,9 +153,9 @@ else:
                                 if chosen == correct_ans:
                                     history_parts.append(f"س{i+1}: {chosen} (صح ✅)")
                                     score += 1
-                                Hon_else:
+                                else:
                                     history_parts.append(f"س{i+1}: {chosen} [والصح ❌: {correct_ans}]")
-                            
+
                             final_history_string = " | ".join(history_parts)
                             
                             st.session_state.quiz_submitted = True
@@ -171,7 +166,6 @@ else:
                             save_result_to_postgres(student_name, student_group, student_mobile, chapter_name, score, total_questions, final_history_string)
                             st.rerun()
                             
-            # عرض النتيجة التفصيلية بعد الإرسال
             if st.session_state.quiz_submitted and st.session_state.submitted_chapter == chapter_name:
                 total_questions = len(today_questions)
                 st.success(f"🎉 ممتاز يا {student_name}! تم حفظ إجاباتك بنجاح في قاعدة البيانات أونلاين.")
@@ -197,7 +191,7 @@ else:
         else:
             st.subheader("✨ مفيش مسابقة متوفرة للنهاردة لثانية إعدادي، ارجع بكرة يا بطل! ✨")
 
-# 4️⃣ رابعاً: لوحة تحكم الخادم
+# 4️⃣ رابعاً: لوحة تحكم الخادم (تعديل المسافات البادئة بالكامل)
 st.write("---")
 with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام فقط)"):
     if "admin_logged_in" not in st.session_state:
@@ -205,60 +199,59 @@ with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام ف�
 
     if not st.session_state.admin_logged_in:
         admin_user = st.text_input("اسم المستخدم (Username):", key="admin_user_input")
-    admin_pass = st.text_input("كلمة السر (Password):", type="password", key="admin_pass_input")
-    if st.button("🔓 تسجيل الدخول"):
-        if admin_user == "admin" and admin_pass == "P@ssw0rd_123654":
-            st.session_state.admin_logged_in = True
+        admin_pass = st.text_input("كلمة السر (Password):", type="password", key="admin_pass_input")
+        if st.button("🔓 تسجيل الدخول"):
+            if admin_user == "admin" and admin_pass == "P@ssw0rd_123654":
+                st.session_state.admin_logged_in = True
+                st.rerun()
+            else:
+                st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة!")
+    else:
+        st.success("🔓 مرحباً يا غالي، تم تسجيل الدخول بنجاح!")
+        if st.button("🔒 تسجيل الخروج", type="primary", key="logout_admin_btn"):
+            st.session_state.admin_logged_in = False
             st.rerun()
-        else:
-            st.error("❌ اسم المستخدم أو كلمة السر غير صحيحة!")
             
-else:
-    st.success("🔓 مرحباً يا غالي، تم تسجيل الدخول بنجاح!")
-    if st.button("🔒 تسجيل الخروج", type="primary", key="logout_admin_btn"):
-        st.session_state.admin_logged_in = False
-        st.rerun()
+        st.write("---")
+        st.write("📊 الدرجات الحية مسحوبة مباشرة بنظام Postgres Connection أونلاين:")
         
-    st.write("---")
-    st.write("📊 الدرجات الحية مسحوبة مباشرة بنظام Postgres Connection أونلاين:")
-    
-    try:
-        conn = psycopg2.connect(DB_CONN_STRING, client_encoding='utf8')
-        cursor = conn.cursor()
-        
-        query = """
-        SELECT 
-            name AS "الاسم", 
-            group_name AS "المرحلة", 
-            chapter AS "الإصحاح", 
-            score AS "الدرجة", 
-            user_history AS "تفاصيل الإجابات [الموبايل والولد والصح]",
-            to_char(created_at + interval '2 hours', 'YYYY-MM-DD HH24:MI:SS') AS "تاريخ ووقت التسجيل" 
-        FROM kpis_bible_study 
-        ORDER BY created_at DESC;
-        """
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        
-        colnames = [desc.name for desc in cursor.description]
-        
-        cursor.close()
-        conn.close()
-        
-        df_display = pd.DataFrame(rows, columns=colnames)
-        
-        if not df_display.empty:
-            st.dataframe(df_display, width="stretch")
+        try:
+            conn = psycopg2.connect(DB_CONN_STRING, client_encoding='utf8')
+            cursor = conn.cursor()
             
-            st.download_button(
-                label="📥 تحميل شيت الدرجات كـ Excel",
-                data=df_display.to_csv(index=False).encode('utf-8-sig'),
-                file_name=f"bible_results_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                mime="text/csv",
-                key="download_btn_postgres_final_v11"
-            )
-        else:
-            st.info("قاعدة البيانات فاضية لسه، مفيش أي طالب حل المسابقة لغاية دلوقتي.")
+            query = """
+            SELECT 
+                name AS "الاسم", 
+                group_name AS "المرحلة", 
+                chapter AS "الإصحاح", 
+                score AS "الدرجة", 
+                user_history AS "تفاصيل الإجابات [الموبايل والولد والصح]",
+                to_char(created_at + interval '2 hours', 'YYYY-MM-DD HH24:MI:SS') AS "تاريخ ووقت التسجيل" 
+            FROM kpis_bible_study 
+            ORDER BY created_at DESC;
+            """
+            cursor.execute(query)
+            rows = cursor.fetchall()
             
-    except Exception as e:
-        st.error(f"حدث خطأ أثناء الاتصال المباشر بـ Postgres: {e}")
+            colnames = [desc.name for desc in cursor.description]
+            
+            cursor.close()
+            conn.close()
+            
+            df_display = pd.DataFrame(rows, columns=colnames)
+            
+            if not df_display.empty:
+                st.dataframe(df_display, width="stretch")
+                
+                st.download_button(
+                    label="📥 تحميل شيت الدرجات كـ Excel",
+                    data=df_display.to_csv(index=False).encode('utf-8-sig'),
+                    file_name=f"bible_results_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                    mime="text/csv",
+                    key="download_btn_postgres_final_v11"
+                )
+            else:
+                st.info("قاعدة البيانات فاضية لسه، مفيش أي طالب حل المسابقة لغاية دلوقتي.")
+                
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء الاتصال المباشر بـ Postgres: {e}")
