@@ -76,27 +76,59 @@ def get_today_questions():
 st.title("⛪ بورتال مسابقة الكتاب المقدس اليومية")
 st.write("---")
 
-# 1️⃣ أولاً: خانات البيانات الأساسية فوق خالص
-st.markdown("### 📝 دخل بياناتك أولاً للدخول للمسابقة:")
-student_name = st.text_input("اسمك بالكامل:", key="student_name_input")
+# تهيئة متغيرات حالة الطالب في الـ Session State
+if "user_logged_in" not in st.session_state:
+    st.session_state.user_logged_in = False
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+if "user_group" not in st.session_state:
+    st.session_state.user_group = "اختر المرحلة"
+if "user_mobile" not in st.session_state:
+    st.session_state.user_mobile = ""
 
-col1, col2 = st.columns(2)
-with col1:
-    student_group = st.selectbox("المرحلة الدراسية:", ["اختر المرحلة", "أولى إعدادي", "تانية إعدادي", "تالتة إعدادي"], key="student_group_input")
-with col2:
-    student_mobile = st.text_input("رقم الموبايل (واتساب):", key="student_mobile_input", max_chars=11)
-
-st.write("---")
-
-# التحقق من إدخال الـ 3 بيانات كاملة
-is_data_complete = student_name.strip() != "" and student_group != "اختر المرحلة" and student_mobile.strip() != ""
-
-if not is_data_complete:
-    st.info("👋 مرحباً بك! من فضلك اكتب اسمك، واختر مرحلتك، واكتب رقم موبايلك لتظهر لك أسئلة اليوم. ✨")
+# 1️⃣ شاشة تسجيل الدخول (لو الطالب مش عامل Log In)
+if not st.session_state.user_logged_in:
+    st.markdown("### 📝 سجل دخولك أولاً للدخول للمسابقة:")
+    input_name = st.text_input("اسمك بالكامل:", key="login_name_input")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        input_group = st.selectbox("المرحلة الدراسية:", ["اختر المرحلة", "أولى إعدادي", "تانية إعدادي", "تالتة إعدادي"], key="login_group_input")
+    with col2:
+        input_mobile = st.text_input("رقم الموبايل (واتساب):", key="login_mobile_input", max_chars=11)
+        
+    if st.button("🔑 تسجيل الدخول وبدء المسابقة", type="primary"):
+        if not input_name.strip():
+            st.error("⚠️ من فضلك اكتب اسمك بالكامل أولاً!")
+        elif input_group == "اختر المرحلة":
+            st.error("⚠️ من فضلك اختر مرحلتك الدراسية!")
+        elif not input_mobile.strip() or len(input_mobile.strip()) < 11:
+            st.error("⚠️ من فضلك دخل رقم موبايل صحيح مكون من 11 رقم!")
+        else:
+            st.session_state.user_name = input_name.strip()
+            st.session_state.user_group = input_group
+            st.session_state.user_mobile = input_mobile.strip()
+            st.session_state.user_logged_in = True
+            st.rerun()
+# 2️⃣ شاشة المسابقة (تظهر فقط بعد نجاح تسجيل الدخول)
 else:
-    # 2️⃣ ثانياً: فلترة المرحلة الدراسية (تانية إعدادي فقط حالياً)
-    if student_group != "تانية إعدادي":
-        st.warning(f"✨ مسابقة مرحلة ({student_group}) مش متوفرة لسه، بنجهزها وهتنزل قريب جداً يا بطل! ✨")
+    welcome_col, logout_col = st.columns()
+    with welcome_col:
+        st.success(f"👋 مرحباً يا بطل: **{st.session_state.user_name}** | مرحلة: **{st.session_state.user_group}**")
+    with logout_col:
+        if st.button("🚪 تسجيل الخروج", type="secondary", use_container_width=True):
+            st.session_state.user_logged_in = False
+            st.session_state.user_name = ""
+            st.session_state.user_group = "اختر المرحلة"
+            st.session_state.user_mobile = ""
+            st.session_state.quiz_submitted = False
+            st.rerun()
+            
+    st.write("---")
+
+    # فلترة المرحلة الدراسية (تانية إعدادي فقط حالياً)
+    if st.session_state.user_group != "تانية إعدادي":
+        st.warning(f"✨ مسابقة مرحلة ({st.session_state.user_group}) مش متوفرة لسه، بنجهزها وهتنزل قريب جداً يا بطل! ✨")
     else:
         chapter_name, today_questions = get_today_questions()
 
@@ -111,7 +143,7 @@ else:
             st.session_state.current_loaded_chapter = chapter_name
 
         if today_questions:
-            st.subheader(f"📖 جاهز لمسابقة اليوم؟ إصحاح: ({chapter_name}) ✨")
+            st.subheader(f"📖 جاهز لمسابقة اليوم? إصحاح: ({chapter_name}) ✨")
             
             if "quiz_submitted" not in st.session_state:
                 st.session_state.quiz_submitted = False
@@ -131,14 +163,14 @@ else:
                 
             st.write("---")
             
-            # 3️⃣ ثالثاً: زر الإرسال وحساب النتيجة
+            # زر الإرسال وحساب النتيجة
             if not (st.session_state.quiz_submitted and st.session_state.submitted_chapter == chapter_name):
                 if st.button("🚀 إرسال الإجابات وعرض الدرجة", type="primary"):
                     if None in user_answers.values():
                         st.error("⚠️ فيه أسئلة لسه محلتهاش، جاوب على كل الأسئلة الأول!")
                     else:
-                        if check_if_already_solved_postgres(student_name, chapter_name):
-                            st.error(f"🚨 يا {student_name}، إنت حليت مسابقة ({chapter_name}) قبل كده! مسموح بمرة واحدة بس.")
+                        if check_if_already_solved_postgres(st.session_state.user_name, chapter_name):
+                            st.error(f"🚨 يا {st.session_state.user_name}، إنت حليت مسابقة ({chapter_name}) قبل كده! مسموح بمرة واحدة بس.")
                         else:
                             score = 0
                             total_questions = len(today_questions)
@@ -163,12 +195,12 @@ else:
                             st.session_state.submitted_chapter = chapter_name
                             st.session_state.saved_user_answers = temp_answers
                             
-                            save_result_to_postgres(student_name, student_group, student_mobile, chapter_name, score, total_questions, final_history_string)
+                            save_result_to_postgres(st.session_state.user_name, st.session_state.user_group, st.session_state.user_mobile, chapter_name, score, total_questions, final_history_string)
                             st.rerun()
                             
             if st.session_state.quiz_submitted and st.session_state.submitted_chapter == chapter_name:
                 total_questions = len(today_questions)
-                st.success(f"🎉 ممتاز يا {student_name}! تم حفظ إجاباتك بنجاح في قاعدة البيانات أونلاين.")
+                st.success(f"🎉 ممتاز يا {st.session_state.user_name}! تم حفظ إجاباتك بنجاح في قاعدة البيانات أونلاين.")
                 st.metric(label="درجتك النهائية هي:", value=f"{st.session_state.calculated_score}from {total_questions}")
                 if st.session_state.calculated_score == total_questions:
                     st.balloons()
@@ -191,7 +223,7 @@ else:
         else:
             st.subheader("✨ مفيش مسابقة متوفرة للنهاردة لثانية إعدادي، ارجع بكرة يا بطل! ✨")
 
-# 4️⃣ رابعاً: لوحة تحكم الخادم (تعديل المسافات البادئة بالكامل)
+# 3️⃣ لوحة تحكم الخادم (خاص بالخدام فقط)
 st.write("---")
 with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام فقط)"):
     if "admin_logged_in" not in st.session_state:
