@@ -48,9 +48,16 @@ def check_if_already_solved_postgres(name, chapter):
     except:
         return False
 
-# دالة لجلب أسئلة اليوم من الشيت المحلي بالتوقيت المصري المظبوط
-def get_today_questions():
-    file_name = "questions_bank.csv"
+# دالة ذكية لتحديد شيت الأسئلة بناءً على مرحلة الطالب المسجل
+def get_today_questions(target_group):
+    # 💡 تحديد اسم الملف بناءً على اختيار الطالب
+    if target_group == "تانية إعدادي":
+        file_name = "questions_bank.csv"
+    elif target_group == "تالتة إعدادي":
+        file_name = "questions_bank_g3.csv"
+    else:
+        return None, []
+        
     egypt_timezone = pytz.timezone("Africa/Cairo")
     today_str = datetime.now(egypt_timezone).strftime("%Y-%m-%d")
     
@@ -58,6 +65,7 @@ def get_today_questions():
         try:
             df = pd.read_csv(file_name, encoding='utf-8-sig', on_bad_lines='skip')
             today_df = df[df['التاريخ'] == today_str]
+            
             if not today_df.empty:
                 current_chapter = today_df["الإصحاح"].iloc[0]
                 questions_list = []
@@ -69,7 +77,7 @@ def get_today_questions():
                     })
                 return current_chapter, questions_list
         except Exception as e:
-            st.error(f"خطأ في قراءة بنك الأسئلة: {e}")
+            st.error(f"خطأ في قراءة بنك الأسئلة من ملف {file_name}: {e}")
     return None, []
 
 # واجهة الموقع
@@ -113,7 +121,6 @@ if not st.session_state.user_logged_in:
 # 2️⃣ شاشة المسابقة (تظهر فقط بعد نجاح تسجيل الدخول)
 else:
     welcome_col, logout_col = st.columns(2)
-
     with welcome_col:
         st.success(f"👋 مرحباً يا بطل: **{st.session_state.user_name}** | مرحلة: **{st.session_state.user_group}**")
     with logout_col:
@@ -127,11 +134,12 @@ else:
             
     st.write("---")
 
-    # فلترة المرحلة الدراسية (تانية إعدادي فقط حالياً)
-    if st.session_state.user_group != "تانية إعدادي":
+    # فلترة الحجب (أولى إعدادي فقط حالياً مش متوفرة)
+    if st.session_state.user_group == "أولى إعدادي":
         st.warning(f"✨ مسابقة مرحلة ({st.session_state.user_group}) مش متوفرة لسه، بنجهزها وهتنزل قريب جداً يا بطل! ✨")
     else:
-        chapter_name, today_questions = get_today_questions()
+        # جلب الأسئلة بناءً على مرحلة الطالب المسجل من الملف المخصص له تلقائياً
+        chapter_name, today_questions = get_today_questions(st.session_state.user_group)
 
         if "current_loaded_chapter" not in st.session_state:
             st.session_state.current_loaded_chapter = chapter_name
@@ -144,7 +152,7 @@ else:
             st.session_state.current_loaded_chapter = chapter_name
 
         if today_questions:
-            st.subheader(f"📖 جاهز لمسابقة اليوم? إصحاح: ({chapter_name}) ✨")
+            st.subheader(f"📖 جاهز لمسابقة اليوم؟ إصحاح: ({chapter_name}) ✨")
             
             if "quiz_submitted" not in st.session_state:
                 st.session_state.quiz_submitted = False
@@ -222,7 +230,7 @@ else:
                             st.markdown(f"🔵 **الإجابة الصحيحة هي:** `{correct_ans}`")
                         st.write("")
         else:
-            st.subheader("✨ مفيش مسابقة متوفرة للنهاردة لثانية إعدادي، ارجع بكرة يا بطل! ✨")
+            st.subheader(f"✨ مفيش مسابقة متوفرة للنهاردة لمرحلة {st.session_state.user_group}، ارجع بكرة يا بطل! ✨")
 
 # 3️⃣ لوحة تحكم الخادم (خاص بالخدام فقط)
 st.write("---")
