@@ -9,7 +9,7 @@ import pytz  # 🌍 مكتبة التوقيت العالمي لضبط فرق ا�
 st.set_page_config(page_title="بورتال مسابقة الكتاب المقدس", page_icon="⛪", layout="centered")
 
 # 🔒 رابط الـ Transaction pooler المأمن والشغال أونلاين في مصر 10/10
-DB_CONN_STRING = "postgresql://postgres.krcowyrafgznvpdhenvw:P%40ssw0rd_123654e@://supabase.com"
+DB_CONN_STRING = "postgresql://postgres.krcowyrafgznvpdhenvw:P%40ssw0rd_123654e@aws-0-eu-west-1.pooler.supabase.com:6543/postgres"
 
 # دالة مأمنة لحفظ النتيجة والهيستوري والموبايل في السيرفر مباشرة أونلاين
 def save_result_to_postgres(name, group, mobile, chapter, score, total, history_string):
