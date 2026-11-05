@@ -254,12 +254,13 @@ with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام ف�
             st.rerun()
             
         st.write("---")
-        st.write("📊 الدرجات الحية مسحوبة مباشرة بنظام Postgres Connection أونلاين:")
+        st.subheader("📊 لوحة متابعة درجات الطلاب الحيّة")
         
         try:
             conn = psycopg2.connect(DB_CONN_STRING, client_encoding='utf8')
             cursor = conn.cursor()
             
+            # سحب البيانات بالكامل من السيرفر مرتبة من الأحدث للأقدم
             query = """
             SELECT 
                 name AS "الاسم", 
@@ -275,24 +276,55 @@ with st.expander("🔐 لوحة تحكم الخادم (خاص بالخدام ف�
             rows = cursor.fetchall()
             
             colnames = [desc.name for desc in cursor.description]
-            
             cursor.close()
             conn.close()
             
-            df_display = pd.DataFrame(rows, columns=colnames)
+            # تحويل البيانات لجدول برمجياً (DataFrame)
+            df_all = pd.DataFrame(rows, columns=colnames)
             
-            if not df_display.empty:
-                st.dataframe(df_display, width="stretch")
-                
-                st.download_button(
-                    label="📥 تحميل شيت الدرجات كـ Excel",
-                    data=df_display.to_csv(index=False).encode('utf-8-sig'),
-                    file_name=f"bible_results_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                    mime="text/csv",
-                    key="download_btn_postgres_final_v11"
-                )
-            else:
-                st.info("قاعدة البيانات فاضية لسه، مفيش أي طالب حل المسابقة لغاية دلوقتي.")
-                
+            # 💡 السحر هنا: عمل تابتين منفصلين تماماً في الواجهة
+            tab_g2, tab_g3 = st.tabs(["📋 مرحلة ثانية إعدادي", "📋 مرحلة تالتة إعدادي"])
+            
+            # 1️⃣ تابة ثانية إعدادي
+            with tab_g2:
+                if not df_all.empty:
+                    # فلترة جدول البيانات لإظهار صفوف تانية إعدادي فقط
+                    df_g2 = df_all[df_all["المرحلة"] == "تانية إعدادي"]
+                    
+                    if not df_g2.empty:
+                        st.dataframe(df_g2, width="stretch")
+                        st.download_button(
+                            label="📥 تحميل شيت درجات ثانية إعدادي كـ Excel",
+                            data=df_g2.to_csv(index=False).encode('utf-8-sig'),
+                            file_name=f"results_g2_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                            mime="text/csv",
+                            key="download_btn_g2"
+                        )
+                    else:
+                        st.info("مفيش أي بيانات مسجلة لطلاب ثانية إعدادي حتى الآن.")
+                else:
+                    st.info("قاعدة البيانات فاضية بالكامل لسه.")
+            
+            # 2️⃣ تابة تالتة إعدادي
+            with tab_g3:
+                if not df_all.empty:
+                    # فلترة جدول البيانات لإظهار صفوف تالتة إعدادي فقط
+                    df_g3 = df_all[df_all["المرحلة"] == "تالتة إعدادي"]
+                    
+                    if not df_g3.empty:
+                        st.dataframe(df_g3, width="stretch")
+                        st.download_button(
+                            label="📥 تحميل شيت درجات تالتة إعدادي كـ Excel",
+                            data=df_g3.to_csv(index=False).encode('utf-8-sig'),
+                            file_name=f"results_g3_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                            mime="text/csv",
+                            key="download_btn_g3"
+                        )
+                    else:
+                        st.info("مفيش أي بيانات مسجلة لطلاب تالتة إعدادي حتى الآن.")
+                else:
+                    st.info("قاعدة البيانات فاضية بالكامل لسه.")
+                    
         except Exception as e:
             st.error(f"حدث خطأ أثناء الاتصال المباشر بـ Postgres: {e}")
+
